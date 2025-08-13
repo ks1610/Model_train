@@ -81,19 +81,44 @@ transform = transforms.Compose([
     transforms.Normalize((0.5,), (0.5,))
 ])
 
-# ===== Prediction Function =====
-def predict_image(image_path):
+# # ===== Prediction Function =====
+# def predict_image(image_path):
+#     image = Image.open(image_path)
+#     image_tensor = transform(image).unsqueeze(0).to(device)
+#     with torch.no_grad():
+#         outputs = model(image_tensor)
+#         predicted_class_idx = outputs.argmax(dim=1).item()
+#         predicted_label = le.inverse_transform([predicted_class_idx])[0]
+#         print("Label classes:", list(le.classes_))
+#         print("Predicted label:", predicted_label)
+#     return predicted_label
+
+# # Example usage
+# image_path = r'D:\Trinh\AICam\test\test9.png' #đổi thành các ảnh trong file để test
+# prediction = predict_image(image_path)
+# print(f"Predicted class for image '{image_path}': {prediction}")
+
+def predict_image(image_path, threshold=0.95):
     image = Image.open(image_path)
     image_tensor = transform(image).unsqueeze(0).to(device)
+    
     with torch.no_grad():
         outputs = model(image_tensor)
-        predicted_class_idx = outputs.argmax(dim=1).item()
-        predicted_label = le.inverse_transform([predicted_class_idx])[0]
+        probs = torch.softmax(outputs, dim=1)  # Convert logits to probabilities
+        confidence, predicted_class_idx = torch.max(probs, dim=1)
+        confidence = confidence.item()
+        
+        if confidence < threshold:
+            print(f"No confident prediction (confidence: {confidence:.2f})")
+            return "Not found"
+        
+        predicted_label = le.inverse_transform([predicted_class_idx.item()])[0]
         print("Label classes:", list(le.classes_))
-        print("Predicted label:", predicted_label)
+        print(f"Predicted label: {predicted_label} (confidence: {confidence:.2f})")
+        
     return predicted_label
 
 # Example usage
-image_path = r'D:\Trinh\AICam\test\test3.png' #đổi thành các ảnh trong file để test
+image_path = r'D:\Trinh\AICam\test\test9.png'
 prediction = predict_image(image_path)
 print(f"Predicted class for image '{image_path}': {prediction}")
