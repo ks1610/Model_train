@@ -1,45 +1,113 @@
+import torch
+import torch.nn as nn
+from torchvision import transforms
+import cv2
 import serial
-import time
+from PIL import Image
+import numpy as np
 
-# Configure the serial port
-# Replace 'COMx' with your actual serial port (e.g., 'COM3' on Windows, '/dev/ttyUSB0' on Linux)
-# Set the baudrate to match your device's configuration
-ser = serial.Serial(
-    port='COMx',  # Change to your serial port
-    baudrate=9600,
-    parity=serial.PARITY_NONE,
-    stopbits=serial.STOPBITS_ONE,
-    bytesize=serial.EIGHTBITS,
-    timeout=1 # Timeout for read operations
-)
+# ===== Model Definition (must match your training) =====
+class PatchEmbedding(nn.Module):
+    def __init__(self, in_channels=3, patch_size=16, emb_dim=256, img_size=128):
+        super().__init__()
+        self.n_patches = (img_size // patch_size) ** 2
+        self.proj = nn.Conv2d(in_channels, emb_dim, kernel_size=patch_size, stride=patch_size)
 
-print(f"Opening serial port {ser.name}...")
+    def forward(self, x):
+        x = self.proj(x)  # (B, emb_dim, H/patch, W/patch)
+        x = x.flatten(2)  # (B, emb_dim, N_patches)
+        x = x.transpose(1, 2)  # (B, N_patches, emb_dim)
+        return x
 
-try:
-    # Open the serial port
-    if not ser.isOpen():
-        ser.open()
+class ViT(nn.Module):
+    def __init__(self, num_classes=3, img_size=128, patch_size=16, emb_dim=256, depth=6, heads=8, mlp_dim=512, in_channels=3):
+        super().__init__()
+        self.patch_embedding = PatchEmbedding(in_channels, patch_size, emb_dim, img_size)
+        self.cls_token = nn.Parameter(torch.randn(1, 1, emb_dim))
+        self.pos_embedding = nn.Parameter(torch.randn(1, 1 + self.patch_embedding.n_patches, emb_dim))
+        encoder_layer = nn.TransformerEncoderLayer(d_model=emb_dim, nhead=heads, dim_feedforward=mlp_dim, batch_first=True)
+        self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=depth)
+        self.fc = nn.Linear(emb_dim, num_classes)
 
-    print("Serial port opened successfully.")
+    def forward(self, x):
+        x = self.patch_embedding(x)
+        cls_tokens = self.cls_token.expand(x.size(0), -1, -1)
+        x = torch.cat((cls_tokens, x), dim=1)
+        x = x + self.pos_embedding
+        x = self.transformer(x)
+        cls_output = x[:, 0]
+        return self.fc(cls_output)
 
-    # Data to send
-    data_to_send = "Hello, UART!"
-    print(f"Sending: '{data_to_send}'")
+# ===== Device =====
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # Encode the string to bytes before sending
-    ser.write(data_to_send.encode('utf-8'))
+# ===== Load Model =====
+model = ViT(num_classes=3).to(device)  # adjust num_classes to your dataset
+model.load_state_dict(torch.load("vit_model.pth", map_location=device))
+model.eval()
 
-    # Optional: Read response if expected
-    # time.sleep(0.1) # Give some time for the device to respond
-    # if ser.in_waiting > 0:
-    #     received_data = ser.readline().decode('utf-8').strip()
-    #     print(f"Received: '{received_data}'")
+# ===== Image Transform =====
+transform = transforms.Compose([
+    transforms.Resize((128, 128)),
+    transforms.ToTensor()
+])
 
-except serial.SerialException as e:
-    print(f"Error opening or communicating with serial port: {e}")
+# ===== UART Setup =====
+uart = serial.Serial(port='COM3', baudrate=9600, timeout=1)
 
-finally:
-    # Close the serial port
-    if ser.isOpen():
-        ser.close()
-        print("Serial port closed.")
+def send_uart_signal(message):
+    uart.write(message.encode('utf-8'))
+    print(f"UART sent: {message}")
+
+# ===== Baseline Capture =====
+cap = cv2.VideoCapture(0)
+print("Capturing baseline environment... Please ensure no object is in view.")
+ret, baseline = cap.read()
+if not ret:
+    print("Error: Unable to read from camera.")
+    exit()
+baseline_gray = cv2.cvtColor(baseline, cv2.COLOR_BGR2GRAY)
+
+# ===== Difference Check =====
+def is_significantly_different(frame, baseline_gray, threshold=30):
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    diff = cv2.absdiff(gray, baseline_gray)
+    return np.mean(diff) > threshold
+
+# ===== Prediction Function =====
+labels = ["cam", "chuoi", "other"]  # adjust to match your training labels
+
+def predict_from_frame(frame):
+    img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+    img = transform(img).unsqueeze(0).to(device)
+    with torch.no_grad():
+        outputs = model(img)
+        _, predicted = torch.max(outputs, 1)
+    return labels[predicted.item()]
+
+# ===== Live Loop =====
+print("Starting live prediction...")
+while True:
+    ret, frame = cap.read()
+    if not ret:
+        break
+
+    if is_significantly_different(frame, baseline_gray):
+        prediction = predict_from_frame(frame)
+    else:
+        prediction = "Default Environment"
+
+    # Send UART if cam detected
+    if prediction.lower() == "cam":
+        send_uart_signal("1")
+
+    cv2.putText(frame, f"Prediction: {prediction}", (10, 30),
+                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+    cv2.imshow("Live Prediction", frame)
+
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+cap.release()
+uart.close()
+cv2.destroyAllWindows()
