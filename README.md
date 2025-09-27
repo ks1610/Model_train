@@ -14,7 +14,7 @@ Tuy nhiên sẽ chỉ nhận 1 ảnh từ 1 camera còn việc đọc từ nhi�
 1. **data** lưu các hình ảnh để trainning
 2. **test** các hình ảnh dùng để kiểm tra model với file **load_model.py**
 
-Khởi động model:
+### Khởi động model:
 1. Mục đích sử dụng:
 - Chạy file **load_model.py** hoặc **Camera.py** để chẩn đoán với hình ảnh hoặc camera (thay đường dẫn hình ảnh dự đoán với file **load_model.py**)
 
@@ -38,7 +38,7 @@ Hiện tại model được tạo để nhận diện quả chuối và quả ca
 ----ảnh_4.png
 ```
 
-###lưu ý: mỗi folder ít nhất là 4 ảnh 
+### lưu ý: mỗi folder ít nhất là 4 ảnh 
 - Chạy file **create_pickle.py** để lưu data ảnh vào file data.pickle 
 - Chạy file model.py để bắt đầu huấn luyện (Quá trình huấn luyện sẽ phụ thuộc vào lượng data của file data.pickle vừa tạo)
 - Chạy file **load_model.py** hoặc **Camera.py** để chẩn đoán với hình ảnh hoặc camera (thay đường dẫn hình ảnh dự đoán với file **load_model.py**)
