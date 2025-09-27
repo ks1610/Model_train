@@ -1,6 +1,6 @@
 Đây là mã nguồn mô hình dự đoán dựa trên hình ảnh được cung cấp cho huấn luyện
 
-###File:
+### File:
 1. **create_pickle.py** tạo file **data.pickle** từ các hình ảnh để lưu dữ liệu 
 2. **data.pickle** là file dữ liệu ảnh
 3. **model.py** để tạo file model có thể sử dụng sau này
@@ -10,7 +10,7 @@ Tuy nhiên sẽ chỉ nhận 1 ảnh từ 1 camera còn việc đọc từ nhi�
 5. **model.pth** lưu lại kết quả trainning chạy từ file **model.py**
 6. **Camera.py** để nhận diện vật thể thông qua camera 
 
-###Folder:
+### Folder:
 1. **data** lưu các hình ảnh để trainning
 2. **test** các hình ảnh dùng để kiểm tra model với file **load_model.py**
 
@@ -23,8 +23,9 @@ Hiện tại model được tạo để nhận diện quả chuối và quả ca
 
 - Thêm các ảnh vào folder **data** theo cấu trúc sau:
 
-###data
-'''
+### data
+
+```
 --**folder1**
 ----ảnh_1.png
 ----ảnh_2.png
@@ -35,7 +36,7 @@ Hiện tại model được tạo để nhận diện quả chuối và quả ca
 ----ảnh_2.png
 ----ảnh_3.png
 ----ảnh_4.png
-'''
+```
 
 ###lưu ý: mỗi folder ít nhất là 4 ảnh 
 - Chạy file **create_pickle.py** để lưu data ảnh vào file data.pickle 
