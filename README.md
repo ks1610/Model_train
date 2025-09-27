@@ -23,6 +23,7 @@ Hiện tại model được tạo để nhận diện quả chuối và quả ca
 
 - Thêm các ảnh vào folder **data** theo cấu trúc sau:
 **data**
+"""
 --**folder1**
 ----ảnh_1.png
 ----ảnh_2.png
@@ -33,6 +34,7 @@ Hiện tại model được tạo để nhận diện quả chuối và quả ca
 ----ảnh_2.png
 ----ảnh_3.png
 ----ảnh_4.png
+"""
 lưu ý: mỗi folder ít nhất là 4 ảnh 
 - Chạy file **create_pickle.py** để lưu data ảnh vào file data.pickle 
 - Chạy file model.py để bắt đầu huấn luyện (Quá trình huấn luyện sẽ phụ thuộc vào lượng data của file data.pickle vừa tạo)
