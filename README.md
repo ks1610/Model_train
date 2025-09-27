@@ -26,12 +26,12 @@ Hiện tại model được tạo để nhận diện quả chuối và quả ca
 ### data
 
 ```
---**folder1**
+--folder1
 ----ảnh_1.png
 ----ảnh_2.png
 ----ảnh_3.png
 ----ảnh_4.png
---**folder2**
+--folder2
 ----ảnh_1.png
 ----ảnh_2.png
 ----ảnh_3.png
